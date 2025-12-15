@@ -1,5 +1,7 @@
 from flask import Flask, request, send_file, render_template_string
 import io
+import os
+
 
 app = Flask(__name__)
 
@@ -56,4 +58,5 @@ def index():
 
     return render_template_string(HTML)
 
-app.run()
+app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
