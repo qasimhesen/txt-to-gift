@@ -1,7 +1,7 @@
 from flask import Flask, request, send_file, render_template_string
 import io
 import os
-
+import re
 
 app = Flask(__name__)
 
@@ -24,37 +24,48 @@ HTML = """
 </html>
 """
 
+
 def convert_to_gift(text):
-    questions = text.strip().split("\n\n")
+    lines = [l.rstrip() for l in text.splitlines()]
     out = []
 
-    for q in questions:
-        lines = [l.strip() for l in q.split("\n") if l.strip()]
-        if len(lines) < 2:
+    current_question = None
+    answers = []
+
+    def flush_question():
+        if current_question and answers:
+            out.append(current_question)
+            out.append("{")
+            for a in answers:
+                out.append(a)
+            out.append("}\n")
+
+    for line in lines:
+        line = line.strip()
+
+        # Yeni sual (1. , 2. , 3. və s.)
+        if re.match(r"^\d+\.\s+", line):
+            flush_question()
+            current_question = line
+            answers = []
             continue
 
-        out.append(lines[0])
-        out.append("{")
+        # Variantlar
+        if ")" in line:
+            parts = line.split(")", 1)
+            answer_text = parts[1].strip()
 
-        for l in lines[1:]:
-            # variant formatı yoxlanır: A) text
-            if ")" not in l:
+            if not answer_text:
                 continue
 
-            parts = l.split(")", 1)
-            answer = parts[1].strip()
-
-            if not answer:
-                continue
-
-            if l.startswith("*"):
-                out.append("= " + answer)
+            if line.startswith("*"):
+                answers.append("= " + answer_text)
             else:
-                out.append("~ " + answer)
+                answers.append("~ " + answer_text)
 
-        out.append("}\n")
-
+    flush_question()
     return "\n".join(out)
+
 
 
 @app.route("/", methods=["GET","POST"])
@@ -76,5 +87,6 @@ def index():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
