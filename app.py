@@ -29,18 +29,33 @@ def convert_to_gift(text):
     out = []
 
     for q in questions:
-        lines = q.split("\n")
+        lines = [l.strip() for l in q.split("\n") if l.strip()]
+        if len(lines) < 2:
+            continue
+
         out.append(lines[0])
         out.append("{")
+
         for l in lines[1:]:
-            l = l.strip()
+            # variant formatı yoxlanır: A) text
+            if ")" not in l:
+                continue
+
+            parts = l.split(")", 1)
+            answer = parts[1].strip()
+
+            if not answer:
+                continue
+
             if l.startswith("*"):
-                out.append("= " + l[1:].split(")",1)[1].strip())
+                out.append("= " + answer)
             else:
-                out.append("~ " + l.split(")",1)[1].strip())
+                out.append("~ " + answer)
+
         out.append("}\n")
 
     return "\n".join(out)
+
 
 @app.route("/", methods=["GET","POST"])
 def index():
@@ -61,4 +76,5 @@ def index():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
